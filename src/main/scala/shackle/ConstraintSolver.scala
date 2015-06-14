@@ -1,7 +1,6 @@
 package shackle
 
 import scala.collection.immutable.ListMap
-import scala.collection.mutable
 
 class ConstraintSolver(
     val domains: ListMap[String, Seq[Any]],
@@ -70,101 +69,3 @@ class ConstraintSolver(
   }
 }
 
-trait Constraint {
-  def isConsistent(
-     assignment: ListMap[String, Any],
-     varDomains: ListMap[String, Seq[Any]]): Boolean
-}
-
-case class SumConstraint(
-    targetValue: Double,
-    vars: Seq[String],
-    coeffs: Map[String, Double])
-    extends Constraint {
-  override def isConsistent(
-      assignment: ListMap[String, Any],
-      varDomains: ListMap[String, Seq[Any]]): Boolean = {
-    require(vars.forall(v => coeffs.contains(v)),
-        "found one or more undefined coefficients")
-    var minSum = 0.0
-    var maxSum = 0.0
-    for (variable <- vars) {
-      if (assignment.contains(variable)) {
-        val value = coeffs(variable) *
-            Constraints.asDouble(assignment(variable))
-        minSum += value
-        maxSum += value
-      } else {
-        val domain = varDomains(variable)
-        minSum += domain.map(Constraints.asDouble _).min
-        maxSum += domain.map(Constraints.asDouble _).max
-      }
-    }
-    targetValue >= minSum && targetValue <= maxSum
-  }
-}
-
-case class AllDifferentConstraint(
-    vars: Seq[String],
-    key: (Any => Any))
-    extends Constraint {
-  override def isConsistent(
-      assignment: ListMap[String, Any],
-      varDomains: ListMap[String, Seq[Any]]): Boolean = {
-
-    val usedValues = mutable.Set[Any]()
-
-    // Check for duplicates among assigned values
-    for (variable <- vars) {
-      if (assignment.contains(variable)) {
-        val currentValue = key(assignment(variable))
-        if (usedValues.contains(currentValue)) {
-          return false
-        }
-        usedValues.add(currentValue)
-      }
-    }
-
-    // Check for unassigned values with no remaining options
-    for (variable <- vars) {
-      if (!assignment.contains(variable)) {
-        val domain = varDomains(variable)
-        val mappedDomain = domain.map(key).toSet
-        val availableValues = mappedDomain - usedValues
-        if (availableValues.size == 0) {
-          return false
-        }
-      }
-    }
-
-    return true
-  }
-}
-
-object Constraints {
-  def sum(targetValue: Double, vars: Seq[String]): Constraint = {
-    val coeffs = vars.map { v => (v, 1.0) }.toMap
-    sum(targetValue, vars, coeffs)
-  }
-
-  def sum(
-      targetValue: Double,
-      vars: Seq[String],
-      coeffs: Map[String, Double]): Constraint = {
-    SumConstraint(targetValue, vars, coeffs)
-  }
-
-  def allDifferent(
-      vars: Seq[String],
-      key: (Any => Any) = identity[Any]): Constraint = {
-    AllDifferentConstraint(vars, key)
-  }
-
-  private[shackle] def asDouble(x: Any) = x match {
-    case y : Double => y
-    case y : Int => y.toDouble
-    case y : Integer => y.toDouble
-    case y : String => y.toDouble
-    case y => throw new IllegalArgumentException("Cannot convert to double")
-  }
-}
