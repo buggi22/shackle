@@ -2,14 +2,46 @@ package shackle
 
 import scala.collection.immutable.ListMap
 
+object ConstraintSolver {
+  def apply(
+      domains: ListMap[String, Seq[Any]],
+      constraints: Seq[Constraint],
+      verbose: Boolean = false): ConstraintSolver = {
+    new ConstraintSolver(domains, constraints, verbose)
+  }
+
+  type Assignment = ListMap[String, Any]
+}
+
 class ConstraintSolver(
     val domains: ListMap[String, Seq[Any]],
     val constraints: Seq[Constraint],
     val verbose: Boolean = false) {
 
-  type Assignment = ListMap[String, Any]
+  type Assignment = ConstraintSolver.Assignment
 
-  def solve(): Option[Assignment] = backtrack(ListMap())
+  def solve: Option[Assignment] = backtrack(ListMap())
+
+  def allSolutions: Iterator[Assignment] = {
+    new Iterator[Assignment] {
+      var solver: ConstraintSolver = ConstraintSolver.this
+      var nextCached: Option[Assignment] = solver.solve
+
+      override def hasNext: Boolean = nextCached.isDefined
+
+      override def next: Assignment = nextCached match {
+        case None => throw new IllegalStateException("No more solutions.")
+        case Some(solution) => {
+          solver = new ConstraintSolver(
+              solver.domains,
+              solver.constraints :+ DifferentSolutionConstraint(solution),
+              solver.verbose)
+          nextCached = solver.solve
+          solution
+        }
+      }
+    }
+  }
 
   private def debug(message: => Any): Unit = {
     if (verbose) { println(message) }

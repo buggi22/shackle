@@ -138,3 +138,19 @@ private[shackle] case class AbsoluteDifferenceConstraint(
   }
 }
 
+private[shackle] case class DifferentSolutionConstraint(
+    solution: ConstraintSolver.Assignment)
+    extends Constraint {
+  override def isConsistent(
+      assignment: ListMap[String, Any],
+      varDomains: ListMap[String, Seq[Any]]): Boolean = {
+    if (assignment.size < solution.size) {
+      // There are more assignments available, so we can't eliminate this
+      // solution yet
+      true
+    } else {
+      // This constraint is satisfied only if the solution differs
+      assignment != solution
+    }
+  }
+}
