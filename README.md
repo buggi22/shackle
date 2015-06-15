@@ -3,8 +3,8 @@
 * Package: `sbt package`
 * Make available for other (local) Scala projects: `sbt publishLocal`
 
-To use in another Scala project:
+To use this library in another Scala project, add the following to your `build.sbt` file:
 ```
-libraryDependencies += "shackle" %% "shackle" % "0.1_SNAPSHOT"
+libraryDependencies += "shackle" %% "shackle" % "0.1-SNAPSHOT"
 ```
-(Note: to use this, you must first have run `sbt publishLocal` from within the shackle project on the same machine)
+(Note: you must first run `sbt publishLocal` from within the shackle project on the same machine)
