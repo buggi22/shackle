@@ -13,34 +13,6 @@ private[shackle] trait NumericUtil {
   }
 }
 
-private[shackle] case class SumConstraint(
-    targetValue: Double,
-    vars: Seq[String],
-    coeffs: Map[String, Double])
-    extends Constraint with NumericUtil {
-  override def isConsistent(
-      assignment: ListMap[String, Any],
-      varDomains: ListMap[String, Seq[Any]]): Boolean = {
-    require(vars.forall(v => coeffs.contains(v)),
-        "found one or more undefined coefficients")
-    var minSum = 0.0
-    var maxSum = 0.0
-    for (variable <- vars) {
-      if (assignment.contains(variable)) {
-        val value = coeffs(variable) *
-            asDouble(assignment(variable))
-        minSum += value
-        maxSum += value
-      } else {
-        val domain = varDomains(variable)
-        minSum += domain.map(asDouble _).min
-        maxSum += domain.map(asDouble _).max
-      }
-    }
-    targetValue >= minSum && targetValue <= maxSum
-  }
-}
-
 private[shackle] case class AllDifferentConstraint(
     vars: Seq[String],
     key: (Any => Any))
@@ -78,63 +50,51 @@ private[shackle] case class AllDifferentConstraint(
   }
 }
 
-private[shackle] case class SameValueConstraint(
-    var1: String,
-    var2: String)
+private[shackle] case class GenericPredicateConstraint(
+    vars: Seq[String],
+    predicate: Seq[Any] => Boolean)
     extends Constraint {
   override def isConsistent(
       assignment: ListMap[String, Any],
       varDomains: ListMap[String, Seq[Any]]): Boolean = {
-    (assignment.get(var1), assignment.get(var2)) match {
-      case (Some(val1), Some(val2)) => val1 == val2
-      case _ => true
+    if (vars.exists { v => !assignment.get(v).isDefined }) {
+      // We can only conclude that the constraint is violated if all
+      // involved variables have been assigned.
+      true
+    } else {
+      val values = vars.map { v => assignment.get(v).get }
+      predicate(values)
     }
   }
 }
 
-private[shackle] case class ValueIsConstraint(
-    variable: String,
-    targetValue: Any)
-    extends Constraint {
-  override def isConsistent(
-      assignment: ListMap[String, Any],
-      varDomains: ListMap[String, Seq[Any]]): Boolean = {
-    assignment.get(variable) match {
-      case Some(value) => value == targetValue
-      case _ => true
-    }
-  }
-}
-
-private[shackle] case class DifferenceConstraint(
-    var1: String,
-    var2: String,
-    targetDifference: Double)
+private[shackle] case class SumConstraint(
+    targetValue: Double,
+    vars: Seq[String],
+    coeffs: Map[String, Double])
     extends Constraint with NumericUtil {
-  override def isConsistent(
-      assignment: ListMap[String, Any],
-      varDomains: ListMap[String, Seq[Any]]): Boolean = {
-    (assignment.get(var1), assignment.get(var2)) match {
-      case (Some(val1), Some(val2)) =>
-        asDouble(val1) - asDouble(val2) == targetDifference
-      case _ => true
-    }
-  }
-}
 
-private[shackle] case class AbsoluteDifferenceConstraint(
-    var1: String,
-    var2: String,
-    targetDifference: Double)
-    extends Constraint with NumericUtil {
+  require(vars.forall(v => coeffs.contains(v)),
+      "found one or more undefined coefficients")
+
   override def isConsistent(
       assignment: ListMap[String, Any],
       varDomains: ListMap[String, Seq[Any]]): Boolean = {
-    (assignment.get(var1), assignment.get(var2)) match {
-      case (Some(val1), Some(val2)) =>
-        math.abs(asDouble(val1) - asDouble(val2)) == math.abs(targetDifference)
-      case _ => true
+    var minSum = 0.0
+    var maxSum = 0.0
+    for (variable <- vars) {
+      if (assignment.contains(variable)) {
+        val value = coeffs(variable) *
+            asDouble(assignment(variable))
+        minSum += value
+        maxSum += value
+      } else {
+        val domain = varDomains(variable)
+        minSum += domain.map(asDouble _).min
+        maxSum += domain.map(asDouble _).max
+      }
     }
+    targetValue >= minSum && targetValue <= maxSum
   }
 }
 

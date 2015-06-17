@@ -8,17 +8,10 @@ trait Constraint {
      varDomains: ListMap[String, Seq[Any]]): Boolean
 }
 
-object Constraints {
+object Constraints extends NumericUtil {
   def sum(targetValue: Double, vars: Seq[String]): Constraint = {
     val coeffs = vars.map { v => (v, 1.0) }.toMap
     sum(targetValue, vars, coeffs)
-  }
-
-  def sum(
-      targetValue: Double,
-      vars: Seq[String],
-      coeffs: Map[String, Double]): Constraint = {
-    SumConstraint(targetValue, vars, coeffs)
   }
 
   def allDifferent(
@@ -28,18 +21,80 @@ object Constraints {
   }
 
   def sameValue(var1: String, var2: String): Constraint = {
-    SameValueConstraint(var1, var2)
+    binaryPredicate(var1, var2,
+        (x1: Any, x2: Any) => x1 == x2)
   }
 
   def valueIs(variable: String, value: Any): Constraint = {
-    ValueIsConstraint(variable, value)
+    unaryPredicate(variable,
+        (x: Any) => x == value)
   }
 
-  def difference(var1: String, var2: String, targetDifference: Double): Constraint = {
-    DifferenceConstraint(var1, var2, targetDifference)
+  def valueIsNot(variable: String, value: Any): Constraint = {
+    unaryPredicate(variable,
+        (x: Any) => x != value)
   }
 
-  def absoluteDifference(var1: String, var2: String, targetDifference: Double): Constraint = {
-    AbsoluteDifferenceConstraint(var1, var2, targetDifference)
+  def sum(
+      targetValue: Double,
+      vars: Seq[String],
+      coeffs: Map[String, Double]): Constraint = {
+    SumConstraint(targetValue, vars, coeffs)
+  }
+
+  def difference(var1: String, var2: String, targetValue: Double): Constraint = {
+    binaryNumericPredicate(var1, var2,
+        (x1: Double, x2: Double) => x1 - x2 == targetValue)
+  }
+
+  def absoluteDifference(
+      var1: String,
+      var2: String,
+      targetValue: Double): Constraint = {
+    binaryNumericPredicate(var1, var2,
+        (x1: Double, x2: Double) => math.abs(x1 - x2) == targetValue)
+  }
+
+  def product(vars: Seq[String], targetValue: Double): Constraint = {
+    seqNumericPredicate(vars, xs => xs.product == targetValue)
+  }
+
+  def seqPredicate(
+      vars: Seq[String],
+      predicate: Seq[Any] => Boolean): Constraint = {
+    GenericPredicateConstraint(vars, predicate)
+  }
+
+  def unaryPredicate(
+      variable: String,
+      predicate: Any => Boolean): Constraint = {
+    seqPredicate(Seq(variable), xs => predicate(xs(0)))
+  }
+
+  def binaryPredicate(
+      var1: String,
+      var2: String,
+      predicate: (Any, Any) => Boolean): Constraint = {
+    seqPredicate(Seq(var1, var2), xs => predicate(xs(0), xs(1)))
+  }
+
+  def seqNumericPredicate(
+      vars: Seq[String],
+      predicate: Seq[Double] => Boolean): Constraint = {
+    seqPredicate(vars, xs => predicate(xs.map(asDouble _)))
+  }
+
+  def unaryNumericPredicate(
+      variable: String,
+      predicate: Double => Boolean): Constraint = {
+    unaryPredicate(variable, x => predicate(asDouble(x)))
+  }
+
+  def binaryNumericPredicate(
+      var1: String,
+      var2: String,
+      predicate: (Double, Double) => Boolean): Constraint = {
+    binaryPredicate(var1, var2,
+        (x1, x2) => predicate(asDouble(x1), asDouble(x2)))
   }
 }
