@@ -73,6 +73,17 @@ private[shackle] case class GenericPredicateConstraint(
   }
 }
 
+private[shackle] case class PartialMapPredicateConstraint(
+    vars: Seq[String],
+    predicate: Map[String, Any] => Boolean)
+    extends Constraint {
+  override def isConsistent(
+      assignment: ListMap[String, Any],
+      varDomains: ListMap[String, Seq[Any]]): Boolean = {
+    predicate(assignment)
+  }
+}
+
 private[shackle] case class SumConstraint(
     targetValue: Double,
     vars: Seq[String],

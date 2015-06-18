@@ -65,6 +65,18 @@ object Constraints extends NumericUtil {
     GenericPredicateConstraint(vars, predicate)
   }
 
+  def mapPredicate(
+      vars: Seq[String],
+      predicate: Map[String, Any] => Boolean): Constraint = {
+    seqPredicate(vars, xs => predicate(vars.zip(xs).toMap))
+  }
+
+  def partialMapPredicate(
+      vars: Seq[String],
+      predicate: Map[String, Any] => Boolean): Constraint = {
+    PartialMapPredicateConstraint(vars, xs => predicate(vars.zip(xs).toMap))
+  }
+
   def unaryPredicate(
       variable: String,
       predicate: Any => Boolean): Constraint = {
@@ -82,6 +94,22 @@ object Constraints extends NumericUtil {
       vars: Seq[String],
       predicate: Seq[Double] => Boolean): Constraint = {
     seqPredicate(vars, xs => predicate(xs.map(asDouble _)))
+  }
+
+  def mapNumericPredicate(
+      vars: Seq[String],
+      predicate: Map[String, Double] => Boolean): Constraint = {
+    mapPredicate(vars, { assignment =>
+      predicate(assignment.mapValues(asDouble _))
+    })
+  }
+
+  def partialMapNumericPredicate(
+      vars: Seq[String],
+      predicate: Map[String, Double] => Boolean): Constraint = {
+    partialMapPredicate(vars, { assignment =>
+      predicate(assignment.mapValues(asDouble _))
+    })
   }
 
   def unaryNumericPredicate(
