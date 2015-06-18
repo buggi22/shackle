@@ -20,9 +20,15 @@ class SatSolver(val vars: Seq[String], val expr: Expression) {
   // TODO: use a more efficient SAT solver
   val constraintSolver: ConstraintSolver = {
     val domains = ListMap(vars.map { v => (v, List(true, false)) } : _*)
-    val constraints = List(Constraints.mapPredicate(vars, { assignment =>
+    val constraints = List(Constraints.partialMapPredicate(vars, { assignment =>
       val boolAssignment = assignment.mapValues(_.asInstanceOf[Boolean])
-      Expressions.eval(expr, boolAssignment)
+      val result = Expressions.partialEval(expr, boolAssignment)
+      result match {
+        case Some(true) => true
+        case Some(false) => false
+        case None => true
+        // Note: Assignment remains consistent until it is provably false
+      }
     }))
     ConstraintSolver(domains, constraints)
   }
