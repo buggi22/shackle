@@ -8,7 +8,12 @@ private[shackle] trait NumericUtil {
     case y : Double => y
     case y : Int => y.toDouble
     case y : Integer => y.toDouble
+    case y : Float => y.toDouble
+    case y : Long => y.toDouble
+    case y : Short => y.toDouble
+    case y : Byte => y.toDouble
     case y : String => y.toDouble
+    case y : Boolean => if (y) { 1.0 } else { 0.0 }
     case y => throw new IllegalArgumentException("Cannot convert to double")
   }
 }
