@@ -74,7 +74,7 @@ object Constraints extends NumericUtil {
   def partialMapPredicate(
       vars: Seq[String],
       predicate: Map[String, Any] => Boolean): Constraint = {
-    PartialMapPredicateConstraint(vars, xs => predicate(vars.zip(xs).toMap))
+    PartialMapPredicateConstraint(vars, predicate)
   }
 
   def unaryPredicate(
